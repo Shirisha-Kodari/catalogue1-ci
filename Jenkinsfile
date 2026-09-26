@@ -1,89 +1,100 @@
+pipeline {
 
-    pipeline {
-        // agent any 
-        agent {
-            label 'roboshop'
-        }
-        environment {
-            appVersion = ''
-            REGION = "us-east-1"
-            ACC_ID = "936819548867"
-            PROJECT = "roboshop"
-            COMPONENT = "catalogue"
-            ECR_REGISTRY = "936819548867.dkr.ecr.us-east-1.amazonaws.com' IMAGE_NAME = 'roboshop/catalogue1"
-        }
-        
+    agent {
+        label 'roboshop'
+    }
 
-        // }
-        options { // pipeline expries 30 mint
-            timeout(time: 30, unit: 'MINUTES')
-            disableConcurrentBuilds() // not parallel to pipelines at a time so, one complted after another complted .
-            // prevents multiple runs of this job at the same time (avoids conflicts like 2 builds pushing same Docker tag).
-        }
-        parameters {
-            booleanParam(name: 'deploy', defaultValue: false, description: 'Toggle this value')
-            
-        }
-    // build
+    environment {
+        APP_VERSION = ''
+        AWS_REGION = 'us-east-1'
+        ACC_ID = '936819548867'
+        PROJECT = 'roboshop'
+        COMPONENT = 'catalogue'
+        ECR_REGISTRY = '936819548867.dkr.ecr.us-east-1.amazonaws.com'
+        IMAGE_NAME = 'roboshop/catalogue1'
+    }
+
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        disableConcurrentBuilds()
+    }
+
+    parameters {
+        booleanParam(
+            name: 'deploy',
+            defaultValue: false,
+            description: 'Deploy application'
+        )
+    }
+
     stages {
-            stage('Read package.json') { //read version and dowload version print it
-                steps {
-                    script {
-                    
-                        def packageJSON = readJSON file: 'package.json' // def means define 
-                        appVersion = packageJSON.version
-                        echo "Package Version: ${appVersion }"
 
-                    }
+        stage('Read package.json') {
+            steps {
+                script {
+                    def packageJSON = readJSON file: 'package.json'
+                    APP_VERSION = packageJSON.version
+
+                    echo "Package Version: ${APP_VERSION}"
                 }
             }
-            stage('install dependencies') {
-                steps {
-                    script {
-                        sh """
-                            npm install
-                        """
+        }
 
-                    }
-                }
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                    npm install
+                '''
             }
-            stage('unit testing') {
-                steps {
-                    script {
-                        sh """
-                            echo "unit tests"
-                        """
+        }
 
-                    }
-                }
-            } 
-            
-            stage('Login to ECR') { 
-                steps { 
-                    sh ''' aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY ''' }             
-            stage('Build Docker Image') { 
-                steps {
-                     sh ''' docker build -t $IMAGE_NAME . ''' } }
+        stage('Unit Testing') {
+            steps {
+                sh '''
+                    echo "Running unit tests"
+                '''
+            }
+        }
 
-            stage('Push to ECR') {
-                 steps { 
-                    sh ''' docker tag $IMAGE_NAME:latest $ECR_REGISTRY/$IMAGE_NAME:latest docker push $ECR_REGISTRY/$IMAGE_NAME:latest ''' } }
-            
-        // if size is 0 failed the build 
-            
-        }  
-        post { 
-            always { 
-                echo 'I will always say Hello again!'
-                deleteDir() // delete post build pipeline in workspace  
+        stage('Login to ECR') {
+            steps {
+                sh '''
+                    aws ecr get-login-password --region $AWS_REGION |
+                    docker login --username AWS --password-stdin $ECR_REGISTRY
+                '''
             }
-            success { 
-                echo 'hello success'
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                    docker build -t $IMAGE_NAME:$APP_VERSION .
+                    docker tag $IMAGE_NAME:$APP_VERSION $ECR_REGISTRY/$IMAGE_NAME:$APP_VERSION
+                '''
             }
-            failure { 
-                echo 'hello failure'
+        }
+
+        stage('Push to ECR') {
+            steps {
+                sh '''
+                    docker push $ECR_REGISTRY/$IMAGE_NAME:$APP_VERSION
+                '''
             }
         }
     }
+
+    post {
+        always {
+            echo 'Cleaning workspace...'
+            deleteDir()
+        }
+
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'Pipeline failed!'
+        }
     }
-    
+}
