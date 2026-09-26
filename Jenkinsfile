@@ -33,9 +33,9 @@ pipeline {
             steps {
                 script {
                     def packageJSON = readJSON file: 'package.json'
-                    APP_VERSION = packageJSON.version
+                    env.APP_VERSION = packageJSON.version
 
-                    echo "Package Version: ${APP_VERSION}"
+                    echo "Package Version: ${env.APP_VERSION}"
                 }
             }
         }
@@ -56,34 +56,26 @@ pipeline {
             }
         }
 
-        stage('Login to ECR') {
+        stage('Docker Build') {
             steps {
-                sh '''
-                    aws ecr get-login-password --region $AWS_REGION |
-                    docker login --username AWS --password-stdin $ECR_REGISTRY
-                '''
-            }
-        }
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-credns']
+                ]) {
+                    sh '''
+                        aws ecr get-login-password --region $AWS_REGION |
+                        docker login --username AWS --password-stdin $ECR_REGISTRY
 
-        stage('Build Docker Image') {
-            steps {
-                sh '''
-                    docker build -t $IMAGE_NAME:$APP_VERSION .
-                    docker tag $IMAGE_NAME:$APP_VERSION $ECR_REGISTRY/$IMAGE_NAME:$APP_VERSION
-                '''
-            }
-        }
-
-        stage('Push to ECR') {
-            steps {
-                sh '''
-                    docker push $ECR_REGISTRY/$IMAGE_NAME:$APP_VERSION
-                '''
+                        docker build \
+                          -t $ECR_REGISTRY/$IMAGE_NAME:$APP_VERSION .
+                    '''
+                }
             }
         }
     }
 
     post {
+
         always {
             echo 'Cleaning workspace...'
             deleteDir()
