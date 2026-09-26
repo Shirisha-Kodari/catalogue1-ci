@@ -94,8 +94,8 @@ pipeline {
                                 --exit-code 1 \
                                 --severity HIGH,CRITICAL \
                                 --format table \
-                                $ECR_REGISTRY/$PROJECT/$COMPONENT:$APP_VERSION
-                        ''',
+                                936819548867.dkr.ecr.us-east-1.amazonaws.com/${project}/${component}/${appVersion} 
+                                '''
                         returnStatus: true
                     )
 
