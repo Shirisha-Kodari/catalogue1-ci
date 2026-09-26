@@ -94,8 +94,9 @@ pipeline {
                                 --exit-code 1 \
                                 --severity HIGH,CRITICAL \
                                 --format table \
-                                936819548867.dkr.ecr.us-east-1.amazonaws.com/${project}/${component}/${appVersion} 
+                                936819548867.dkr.ecr.us-east-1.amazonaws.com/${project}/${component}:${appVersion} 
                                 '''
+                                ,
                         returnStatus: true
                     )
 
