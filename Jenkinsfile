@@ -109,7 +109,7 @@ pipeline {
                 }
             }
         }
-    }
+    
         stage('ECR Image push') {
             steps {
                 script {
@@ -124,6 +124,8 @@ pipeline {
             }
 
         }
+
+    }
 
     post {
 
