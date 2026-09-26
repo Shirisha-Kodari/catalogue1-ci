@@ -67,7 +67,7 @@ pipeline {
             }
         }
     }
-    stage('Trivy Scan') {
+       stage('Trivy Scan') {
             steps {
                 script {
                     def dockerfileScan = sh(
