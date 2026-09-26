@@ -26,13 +26,13 @@ pipeline {
 
     stages {
 
-        stage('Read package.json') {
+        stage('Read package.json') {  //read jenins appvesrion from packages .json
             steps {
                 script {
                     def packageJson = readJSON file: 'package.json'
                     // Extract the version property
                     appVersion = packageJson.version
-                    echo "The application version is: ${appVersion}"
+                    echo "The application version is: ${appVersion}" //print app vesrion 
                 }
             }
         }
@@ -57,7 +57,7 @@ pipeline {
             steps {
                 script {
                     // in this block we get aws authentication
-                    withAWS(credentials: 'aws-credns', region: 'us-east-1') {
+                    withAWS(credentials: 'aws-credns', region: 'us-east-1') { //install pluin aws steps and retrive credns  
                         sh """
                             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${acc_id}.dkr.ecr.us-east-1.amazonaws.com
                             docker build -t ${acc_id}.dkr.ecr.us-east-1.amazonaws.com/${project}/${component}:${appVersion} .
@@ -67,7 +67,29 @@ pipeline {
             }
         }
     }
+    stage('Trivy Scan') {
+            steps {
+                script {
+                    def dockerfileScan = sh(
+                        script: """
+                            trivy config --exit-code 1 --severity HIGH,CRITICAL --format table ./Dockerfile
+                        """,
+                        returnStatus: true
+                    )
 
+                    def imageScan = sh(
+                        script: """
+                            trivy image --scanners vuln --pkg-types os --exit-code 1 --severity HIGH,CRITICAL --format table ${acc_id}.dkr.ecr.us-east-1.amazonaws.com/${project}/${component}:${appVersion}
+                        """,
+                        returnStatus: true
+                    )
+
+                    if (dockerfileScan != 0 || imageScan != 0) {
+                        error "Trivy found HIGH/CRITICAL issues in Dockerfile and/or OS packages. Failing pipeline."
+                    }
+                }
+            }
+        }
     post {
 
         always {
