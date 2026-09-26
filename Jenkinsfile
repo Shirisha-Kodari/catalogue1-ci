@@ -66,7 +66,7 @@ pipeline {
                 }
             }
         }
-    }
+    
         stage('Trivy Scan') {
             steps {
                 script {
@@ -123,6 +123,8 @@ pipeline {
             echo 'Pipeline failed!'
         }
     }
+
+}
 
 
 
