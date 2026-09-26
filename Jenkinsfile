@@ -10,8 +10,9 @@
             ACC_ID = "936819548867"
             PROJECT = "roboshop"
             COMPONENT = "catalogue"
-            //COURSE = 'jenkins'
+            ECR_REGISTRY = "936819548867.dkr.ecr.us-east-1.amazonaws.com' IMAGE_NAME = 'roboshop/catalogue1"
         }
+        
 
         // }
         options { // pipeline expries 30 mint
@@ -57,8 +58,16 @@
                 }
             } 
             
-                         
-            
+            stage('Login to ECR') { 
+                steps { 
+                    sh ''' aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY ''' }             
+            stage('Build Docker Image') { 
+                steps {
+                     sh ''' docker build -t $IMAGE_NAME . ''' } }
+
+            stage('Push to ECR') {
+                 steps { 
+                    sh ''' docker tag $IMAGE_NAME:latest $ECR_REGISTRY/$IMAGE_NAME:latest docker push $ECR_REGISTRY/$IMAGE_NAME:latest ''' } }
             
         // if size is 0 failed the build 
             
@@ -76,5 +85,5 @@
             }
         }
     }
-
+    }
     
