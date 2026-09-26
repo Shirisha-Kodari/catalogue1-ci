@@ -67,29 +67,47 @@ pipeline {
             }
         }
     }
-       stage('Trivy Scan') {
+        stage('Trivy Scan') {
             steps {
                 script {
+
+                    echo "Scanning Dockerfile..."
+
                     def dockerfileScan = sh(
-                        script: """
-                            trivy config --exit-code 1 --severity HIGH,CRITICAL --format table ./Dockerfile
-                        """,
+                        script: '''
+                            trivy config \
+                                --exit-code 1 \
+                                --severity HIGH,CRITICAL \
+                                --format table \
+                                ./Dockerfile
+                        ''',
                         returnStatus: true
                     )
 
+                    echo "Scanning Docker image..."
+
                     def imageScan = sh(
-                        script: """
-                            trivy image --scanners vuln --pkg-types os --exit-code 1 --severity HIGH,CRITICAL --format table ${acc_id}.dkr.ecr.us-east-1.amazonaws.com/${project}/${component}:${appVersion}
-                        """,
+                        script: '''
+                            trivy image \
+                                --scanners vuln \
+                                --pkg-types os \
+                                --exit-code 1 \
+                                --severity HIGH,CRITICAL \
+                                --format table \
+                                $ECR_REGISTRY/$PROJECT/$COMPONENT:$APP_VERSION
+                        ''',
                         returnStatus: true
                     )
 
                     if (dockerfileScan != 0 || imageScan != 0) {
-                        error "Trivy found HIGH/CRITICAL issues in Dockerfile and/or OS packages. Failing pipeline."
+                        error "Trivy found HIGH/CRITICAL issues. Failing pipeline."
                     }
+
+                    echo "Trivy scan completed successfully!"
                 }
             }
         }
+    }
     post {
 
         always {
@@ -105,5 +123,6 @@ pipeline {
             echo 'Pipeline failed!'
         }
     }
-}
+
+
 
