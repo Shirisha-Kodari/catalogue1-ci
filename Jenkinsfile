@@ -123,6 +123,8 @@ pipeline {
                 }
             }
 
+        }
+
     post {
 
         always {
