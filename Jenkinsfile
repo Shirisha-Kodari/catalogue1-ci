@@ -5,7 +5,7 @@ pipeline {
     }
 
     environment {
-        APP_VERSION = ''
+        def appVersion = ""
         acc_id = "936819548867"
         project = "roboshop"
         component = "catalogue1"
@@ -29,10 +29,10 @@ pipeline {
         stage('Read package.json') {
             steps {
                 script {
-                    def packageJSON = readJSON file: 'package.json'
-                    env.APP_VERSION = packageJSON.version
-
-                    echo "Package Version: ${env.APP_VERSION}"
+                    def packageJson = readJSON file: 'package.json'
+                    // Extract the version property
+                    appVersion = packageJson.version
+                    echo "The application version is: ${appVersion}"
                 }
             }
         }
