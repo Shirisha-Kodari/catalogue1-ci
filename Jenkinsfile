@@ -6,12 +6,9 @@ pipeline {
 
     environment {
         APP_VERSION = ''
-        AWS_REGION = 'us-east-1'
-        ACC_ID = '936819548867'
-        PROJECT = 'roboshop'
-        COMPONENT = 'catalogue'
-        ECR_REGISTRY = '936819548867.dkr.ecr.us-east-1.amazonaws.com'
-        IMAGE_NAME = 'roboshop/catalogue1'
+        acc_id = "936819548867"
+        project = "roboshop"
+        component = "catalogue1"
     }
 
     options {
@@ -58,17 +55,14 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                withCredentials([
-                    [$class: 'AmazonWebServicesCredentialsBinding',
-                     credentialsId: 'aws-credns']
-                ]) {
-                    sh '''
-                        aws ecr get-login-password --region $AWS_REGION |
-                        docker login --username AWS --password-stdin $ECR_REGISTRY
-
-                        docker build \
-                          -t $ECR_REGISTRY/$IMAGE_NAME:$APP_VERSION .
-                    '''
+                script {
+                    // in this block we get aws authentication
+                    withAWS(credentials: 'aws-credns', region: 'us-east-1') {
+                        sh """
+                            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${acc_id}.dkr.ecr.us-east-1.amazonaws.com
+                            docker build -t ${acc_id}.dkr.ecr.us-east-1.amazonaws.com/${project}/${component}:${APP_VERSION} .
+                        """
+                    }
                 }
             }
         }
