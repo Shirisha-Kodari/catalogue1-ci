@@ -14,14 +14,14 @@ pipeline {
     options {
         timeout(time: 30, unit: 'MINUTES')
         disableConcurrentBuilds()   
+        ansiColor('xterm') //install plugin and restart jenkins showing with color messages 
+
     }
 
-    parameters {
-        booleanParam(
-            name: 'deploy',
-            defaultValue: false,
-            description: 'Deploy application'
-        )
+     parameters {
+        string(name: 'appVesrion', description: 'version of application ')
+        choice(name: 'Deploy_to', choices:['dev' , 'qa' , 'prod'], description: 'Pick the environment')
+
     }
 
     stages {
@@ -50,6 +50,20 @@ pipeline {
                 sh '''
                     echo "Running unit tests"
                 '''
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            environment{
+                    scannerHome = tool 'Sonar-8.0'
+                }
+            steps {
+                
+                // 'My SonarQube Server' must match the name in Manage Jenkins > System
+                withSonarQubeEnv('Sonar-8.0') {
+                     sh "${scannerHome}/bin/sonar-scanner" //it is command 
+                    
+                }
             }
         }
 
@@ -125,7 +139,28 @@ pipeline {
 
         }
 
-    }
+    
+
+        stage('Trigger deploy') {
+            when {
+                expression { params.Deploy }
+            }
+            steps {
+                script {
+                    // in this block we get aws authentication
+                    build job: 'cataloue1-cd'
+                    parameters: [
+                       string(name: 'aapVersion', value: "${appVesrion}"),
+                       string(name: 'Deploy_to', value: 'dev')
+              ],
+              propagte: false
+              wait: false // Set to true if you want to wait for completion
+             }
+
+          }
+     }
+ }
+        
 
     post {
 
@@ -142,8 +177,9 @@ pipeline {
             echo 'Pipeline failed!'
         }
     }
-
 }
+
+
 
 
 
