@@ -19,8 +19,12 @@ pipeline {
     }
 
      parameters {
-        string(name: 'appVesrion', description: 'version of application ')
-        choice(name: 'Deploy_to', choices:['dev' , 'qa' , 'prod'], description: 'Pick the environment')
+        booleanParam(
+    name: 'Deploy',
+    defaultValue: false,
+    description: 'Deploy the application?'
+)
+    string(name: 'appVersion', description: 'version of application')
 
     }
 
@@ -143,18 +147,18 @@ pipeline {
 
         stage('Trigger deploy') {
             when {
-                expression { params.Deploy }
+                 expression { params.Deploy }
             }
             steps {
                 script {
                     // in this block we get aws authentication
-                    build job: 'cataloue1-cd'
-                    parameters: [
-                       string(name: 'aapVersion', value: "${appVesrion}"),
-                       string(name: 'Deploy_to', value: 'dev')
-              ],
-              propagte: false
-              wait: false // Set to true if you want to wait for completion
+                    build job: 'cataloue1-cd',
+                        parameters: [
+                             string(name: 'aapVersion', value: "${appVesrion}"),
+                             string(name: 'Deploy_to', value: 'dev')
+                        ],
+                        propagate: false
+                        wait: false // Set to true if you want to wait for completion
              }
 
           }
